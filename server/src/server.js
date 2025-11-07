@@ -72,7 +72,7 @@ app.use('/api/profile', profileRouter);
 app.use('/api/tasks', tasksRouter);
 
 // Handle 404 for API routes
-app.all('/api/*', (req, res) => {
+app.use('/api', (req, res) => {
     res.status(404).json({
         error: 'Not Found',
         code: 'NOT_FOUND',
