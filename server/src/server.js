@@ -12,6 +12,7 @@ import { apiLimiter } from './middleware/rateLimit.js';
 import { errorHandler } from './middleware/error.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { timeout } from './middleware/timeout.js';
 
 dotenv.config();
 
