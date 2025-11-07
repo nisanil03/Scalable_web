@@ -125,9 +125,12 @@ async function start() {
 		});
 		console.log('Connected to MongoDB');
 
-		// Graceful shutdown handling
-		const gracefulShutdown = async () => {
-			console.log('Received shutdown signal');
+		// Debug: print PID so we can correlate external signals
+		console.log('Process PID:', process.pid);
+
+		// Graceful shutdown handling (log signal source)
+		const gracefulShutdown = async (signal) => {
+			console.log(`Received shutdown signal: ${signal || 'unknown'}`);
 			try {
 				await mongoose.connection.close();
 				console.log('MongoDB connection closed');
@@ -138,8 +141,17 @@ async function start() {
 			}
 		};
 
-		process.on('SIGTERM', gracefulShutdown);
-		process.on('SIGINT', gracefulShutdown);
+		process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+		process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+		// Log unexpected errors to aid debugging
+		process.on('uncaughtException', (err) => {
+			console.error('Uncaught Exception:', err);
+		});
+
+		process.on('unhandledRejection', (reason) => {
+			console.error('Unhandled Rejection:', reason);
+		});
 
 		// Start server
 		app.listen(PORT, () => {
