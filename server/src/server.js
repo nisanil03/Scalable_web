@@ -70,6 +70,32 @@ app.use('/api/auth', authRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/tasks', tasksRouter);
 
+// Handle 404 for API routes
+app.all('/api/*', (req, res) => {
+    res.status(404).json({
+        error: 'Not Found',
+        code: 'NOT_FOUND',
+        details: `Route ${req.method} ${req.path} not found`,
+        requestId: req.id
+    });
+});
+
+// Serve static files from the web/dist directory in production
+if (process.env.NODE_ENV === 'production') {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const webDistPath = path.join(__dirname, '../../web/dist');
+    
+    // Serve static files
+    app.use(express.static(webDistPath));
+    
+    // Serve index.html for all non-API routes (client-side routing)
+    app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api/')) {
+            res.sendFile(path.join(webDistPath, 'index.html'));
+        }
+    });
+}
+
 // centralized error handler
 app.use(errorHandler);
 

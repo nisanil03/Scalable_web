@@ -1,5 +1,6 @@
 // Platform error definitions with their status codes
 const PLATFORM_ERRORS = {
+  NOT_FOUND: { status: 404, code: 'NOT_FOUND', message: 'The requested resource was not found' },
   FUNCTION_THROTTLED: { status: 500, code: 'FUNCTION_THROTTLED', message: 'Function execution throttled' },
   INTERNAL_CACHE_ERROR: { status: 500, code: 'INTERNAL_CACHE_ERROR', message: 'Internal cache error occurred' },
   INTERNAL_CACHE_KEY_TOO_LONG: { status: 500, code: 'INTERNAL_CACHE_KEY_TOO_LONG', message: 'Cache key exceeds maximum length' },

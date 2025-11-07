@@ -7,6 +7,7 @@ export function errorHandler(err, req, res, _next) {
         method: req.method,
         code: err.code,
         message: err.message,
+        requestId: req.id,
         stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 
