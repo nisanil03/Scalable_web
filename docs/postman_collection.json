@@ -1,0 +1,90 @@
+{
+	"info": {
+		"name": "Scalable Web App API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth - Register",
+			"request": {
+				"method": "POST",
+				"header": [{"key": "Content-Type", "value": "application/json"}],
+				"url": {"raw": "http://localhost:5000/api/auth/register", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api","auth","register"]},
+				"body": {"mode": "raw", "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"user@example.com\",\n  \"password\": \"secret123\"\n}"}
+			}
+		},
+		{
+			"name": "Auth - Login",
+			"event": [{"listen": "test", "script": {"exec": [
+				"var data = pm.response.json();",
+				"pm.collectionVariables.set('token', data.token);"
+			], "type": "text/javascript"}}],
+			"request": {
+				"method": "POST",
+				"header": [{"key": "Content-Type", "value": "application/json"}],
+				"url": {"raw": "http://localhost:5000/api/auth/login", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api","auth","login"]},
+				"body": {"mode": "raw", "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"secret123\"\n}"}
+			}
+		},
+		{
+			"name": "Profile - Get",
+			"request": {
+				"method": "GET",
+				"header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+				"url": {"raw": "http://localhost:5000/api/profile", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api","profile"]}
+			}
+		},
+		{
+			"name": "Profile - Update",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{"key": "Authorization", "value": "Bearer {{token}}"},
+					{"key": "Content-Type", "value": "application/json"}
+				],
+				"url": {"raw": "http://localhost:5000/api/profile", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api","profile"]},
+				"body": {"mode": "raw", "raw": "{\n  \"name\": \"New Name\"\n}"}
+			}
+		},
+		{
+			"name": "Tasks - List",
+			"request": {
+				"method": "GET",
+				"header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+				"url": {"raw": "http://localhost:5000/api/tasks", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api","tasks"]}
+			}
+		},
+		{
+			"name": "Tasks - Create",
+			"request": {
+				"method": "POST",
+				"header": [
+					{"key": "Authorization", "value": "Bearer {{token}}"},
+					{"key": "Content-Type", "value": "application/json"}
+				],
+				"url": {"raw": "http://localhost:5000/api/tasks", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api","tasks"]},
+				"body": {"mode": "raw", "raw": "{\n  \"title\": \"My Task\",\n  \"description\": \"Details\"\n}"}
+			}
+		},
+		{
+			"name": "Tasks - Update",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{"key": "Authorization", "value": "Bearer {{token}}"},
+					{"key": "Content-Type", "value": "application/json"}
+				],
+				"url": {"raw": "http://localhost:5000/api/tasks/:id", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api","tasks",":id"]},
+				"body": {"mode": "raw", "raw": "{\n  \"status\": \"done\"\n}"}
+			}
+		},
+		{
+			"name": "Tasks - Delete",
+			"request": {
+				"method": "DELETE",
+				"header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+				"url": {"raw": "http://localhost:5000/api/tasks/:id", "protocol": "http", "host": ["localhost"], "port": "5000", "path": ["api","tasks",":id"]}
+			}
+		}
+	]
+}
