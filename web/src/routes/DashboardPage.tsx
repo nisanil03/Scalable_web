@@ -8,7 +8,6 @@ type Task = { _id: string; title: string; description?: string; status: string; 
 export function DashboardPage() {
 	const { user, token } = useAuth();
 	const [profile, setProfile] = useState<any>(null);
-	const [profileError, setProfileError] = useState<string | null>(null);
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [total, setTotal] = useState(0);
 	const [q, setQ] = useState('');
@@ -24,8 +23,8 @@ export function DashboardPage() {
 	useEffect(() => {
 		if (!token) return;
 		axios.get('/api/profile', { headers: authHeaders })
-			.then(r => { setProfile(r.data); setProfileError(null); })
-			.catch(err => { setProfileError(err?.response?.data?.error || 'Failed to load profile'); });
+			.then(r => setProfile(r.data))
+			.catch(err => console.error('Failed to load profile:', err?.response?.data?.error || err.message));
 		load();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [token]);

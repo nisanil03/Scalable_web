@@ -1,4 +1,3 @@
-import React from 'react';
 /*
   Avatar component
   - Renders an <img> when `src` is provided.
