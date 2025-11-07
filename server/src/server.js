@@ -116,8 +116,12 @@ async function start() {
 		await mongoose.connect(process.env.MONGODB_URI, {
 			// These options help with deployment stability
 			maxPoolSize: 10,
-			serverSelectionTimeoutMS: 5000,
+			serverSelectionTimeoutMS: 30000, // Give more time for initial connection
 			socketTimeoutMS: 45000,
+			retryWrites: true,
+			retryReads: true,
+			w: 'majority',
+			family: 4 // Force IPv4
 		});
 		console.log('Connected to MongoDB');
 
