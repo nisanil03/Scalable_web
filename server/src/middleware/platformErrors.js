@@ -40,7 +40,7 @@ const isPlatformError = (code) => {
   return code in PLATFORM_ERRORS;
 };
 
-module.exports = {
+export {
   PlatformError,
   isPlatformError,
   PLATFORM_ERRORS

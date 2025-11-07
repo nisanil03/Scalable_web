@@ -37,7 +37,8 @@ tasksRouter.post('/',
 // Get all tasks for authenticated user with filtering, pagination and sorting
 tasksRouter.get('/', 
     asyncHandler(async (req, res) => {
-        const { q, status, page = 1, limit = 10, sort = 'createdAt', order = 'desc' } = await querySchema.parseAsync(req.query);
+        const parsed = await schemas.queryParams.parseAsync(req.query);
+        const { q, status, page = 1, limit = 10, sort = 'createdAt', order = 'desc' } = parsed;
         
         const filter = { userId: req.userId };
         if (status) filter.status = status;

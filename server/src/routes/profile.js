@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
 import { User } from '../models/User.js';
-import path from 'path';
-import fs from 'fs';
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import { PlatformError } from '../middleware/platformErrors.js';
 
 export const profileRouter = Router();
 
