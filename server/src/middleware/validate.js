@@ -27,7 +27,8 @@ const schemas = {
     // Task validation schemas
     createTask: z.object({
         title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
-        description: z.string().optional(),
+        description: z.string().optional().default(''),
+        status: z.enum(['todo', 'in_progress', 'done']).optional(),
         priority: z.enum(['low', 'medium', 'high']).optional(),
         dueDate: z.string().datetime().optional()
     }),
@@ -35,15 +36,20 @@ const schemas = {
     updateTask: z.object({
         title: z.string().min(1, 'Title is required').max(200, 'Title too long').optional(),
         description: z.string().optional(),
+        status: z.enum(['todo', 'in_progress', 'done']).optional(),
         priority: z.enum(['low', 'medium', 'high']).optional(),
         dueDate: z.string().datetime().optional(),
         completed: z.boolean().optional()
     }),
 
-    // ID validation schema
+    // ID validation schema (supports both 'id' and 'taskId' params)
     taskId: z.object({
-        taskId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid task ID format')
-    }).transform(data => ({ ...data, taskId: data.taskId.toString() })),
+        id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid task ID format').optional(),
+        taskId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid task ID format').optional()
+    }).transform(data => {
+        const id = data.id || data.taskId;
+        return { id: id?.toString() };
+    }),
 
     // Profile validation schemas
     updateProfile: z.object({
@@ -65,7 +71,10 @@ export function validate(schemaName) {
             
             // Update the appropriate request object
             if (schemaName.endsWith('Id')) {
-                req.params = validated;
+                // For ID validation, merge validated id back into params
+                if (validated.id) {
+                    req.params.id = validated.id;
+                }
             } else {
                 req.body = validated;
             }

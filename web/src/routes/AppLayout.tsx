@@ -2,7 +2,6 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext';
 import { useState } from 'react';
 import { useTheme } from '../state/Theme';
-import { HiSun, HiMoon } from 'react-icons/hi';
 
 export function AppLayout() {
 	const { user, logout } = useAuth();
@@ -27,10 +26,10 @@ export function AppLayout() {
 					<nav className="flex items-center gap-2 sm:gap-4">
 						<button 
 							onClick={toggle} 
-							className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors" 
+							className="px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-sm dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 transition-colors" 
 							aria-label="Toggle theme"
 						>
-							{theme === 'dark' ? <HiSun size={20} /> : <HiMoon size={20} />}
+							{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
 						</button>
 						{user ? (
 							<div className="relative">

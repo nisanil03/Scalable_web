@@ -11,14 +11,11 @@ export const profileRouter = Router();
 profileRouter.use(requireAuth);
 
 profileRouter.get('/', asyncHandler(async (req, res) => {
-    const user = await User.findById(req.userId).select('_id email name createdAt updatedAt');
+    const user = await User.findById(req.userId).select('_id email name avatarUrl createdAt updatedAt');
     if (!user) {
         throw new PlatformError('RESOURCE_NOT_FOUND');
     }
-    return res.json({
-        message: 'Profile retrieved successfully',
-        data: user
-    });
+    return res.json(user);
 }));
 
 const updateSchema = z.object({ 
@@ -33,16 +30,13 @@ profileRouter.put('/',
             req.userId,
             { $set: req.body },
             { new: true, runValidators: true }
-        ).select('_id email name createdAt updatedAt');
+        ).select('_id email name avatarUrl createdAt updatedAt');
 
         if (!user) {
             throw new PlatformError('RESOURCE_NOT_FOUND');
         }
 
-        return res.json({
-            message: 'Profile updated successfully',
-            data: user
-        });
+        return res.json(user);
     })
 );
 // Avatar upload functionality has been removed and avatarUrl is no longer returned.

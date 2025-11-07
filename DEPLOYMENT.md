@@ -1,70 +1,29 @@
-# Deployment Checklist
+# Deployment Guide
 
-## Required Environment Variables
+## Frontend (Vercel)
 
-Make sure these environment variables are set in your deployment environment:
+1. **Set Environment Variable:**
+   - Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+   - Add: `VITE_API_URL` = `https://your-backend-url.vercel.app` (or your backend URL)
+   - Redeploy after adding the variable
 
-- `MONGODB_URI`: MongoDB connection string
-- `JWT_SECRET`: Secret key for JWT token signing
-- `CORS_ORIGIN`: Allowed origins (comma-separated) for CORS
-- `NODE_ENV`: Set to 'production' in deployment
-- `PORT`: Port for the server (defaults to 5000)
+2. **If backend is on same Vercel project:**
+   - Update `vercel.json` with your actual backend URL
+   - Or remove `VITE_API_URL` to use relative paths with rewrites
 
-## Common Deployment Issues & Solutions
+## Backend (Vercel or other platform)
 
-1. **CORS Errors**
-   - Ensure `CORS_ORIGIN` includes your frontend domain
-   - Example: `https://your-frontend-domain.com` or multiple origins: `https://domain1.com,https://domain2.com`
+1. **Set Environment Variables:**
+   - `MONGODB_URI` - Your MongoDB connection string
+   - `JWT_SECRET` - A random secret string
+   - `CORS_ORIGIN` - Your frontend URL (e.g., `https://your-frontend.vercel.app`)
+   - `PORT` - Usually set automatically by platform
 
-2. **MongoDB Connection Issues**
-   - Check if MongoDB URI is correct
-   - Verify IP whitelist in MongoDB Atlas
-   - Check if database user has correct permissions
+2. **Build Command:** `npm run build` (if needed)
+3. **Start Command:** `npm start`
 
-3. **JWT Authentication Errors**
-   - Verify `JWT_SECRET` is set
-   - Check if frontend is sending token correctly
-   - Ensure token is not expired
+## Troubleshooting 404 Errors
 
-4. **Rate Limiting Issues**
-   - Default rate limit is applied to `/api` routes
-   - Adjust limits in `middleware/rateLimit.js` if needed
-
-## Pre-deployment Checklist
-
-1. Set all required environment variables
-2. Enable production mode with `NODE_ENV=production`
-3. Update CORS settings for production domains
-4. Set proper MongoDB connection options
-5. Configure error logging (currently logs to console)
-6. Test all API endpoints with production configuration
-
-## Monitoring & Debug Tips
-
-1. Check server logs for error details
-2. Use health check endpoint: `GET /api/health`
-3. Monitor MongoDB connection status
-4. Watch for rate limit errors
-5. Check CORS errors in browser console
-
-## Platform-specific Notes
-
-### General
-- Enable production mode
-- Configure proper error handling
-- Set up monitoring and logging
-- Configure SSL/TLS if needed
-
-### MongoDB
-- Use connection pooling
-- Enable SSL for database connections
-- Set proper timeout values
-- Monitor connection pool size
-
-## Security Notes
-
-1. Production environment hides error details from responses
-2. JWT secrets must be kept secure
-3. CORS origins should be strictly configured
-4. Rate limiting is enabled by default
-5. Helmet middleware is configured for security headers
+- **Frontend 404:** Make sure `VITE_API_URL` is set correctly
+- **Backend 404:** Check that routes are properly exported and server is running
+- **CORS Errors:** Update `CORS_ORIGIN` in backend to match frontend URL

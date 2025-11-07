@@ -21,10 +21,7 @@ tasksRouter.post('/',
                 userId: req.userId 
             });
             
-            return res.status(201).json({
-                message: 'Task created successfully',
-                data: task
-            });
+            return res.status(201).json(task);
         } catch (err) {
             if (err.code === 11000) { // MongoDB duplicate key error
                 throw new PlatformError('INTERNAL_FUNCTION_INVOCATION_FAILED');
@@ -34,10 +31,19 @@ tasksRouter.post('/',
     })
 );
 
+const querySchema = z.object({
+    q: z.string().optional(),
+    status: z.string().optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    sort: z.enum(['createdAt','title','status']).optional(),
+    order: z.enum(['asc','desc']).optional(),
+});
+
 // Get all tasks for authenticated user with filtering, pagination and sorting
 tasksRouter.get('/', 
     asyncHandler(async (req, res) => {
-        const parsed = await schemas.queryParams.parseAsync(req.query);
+        const parsed = await querySchema.parseAsync(req.query);
         const { q, status, page = 1, limit = 10, sort = 'createdAt', order = 'desc' } = parsed;
         
         const filter = { userId: req.userId };
@@ -56,7 +62,6 @@ tasksRouter.get('/',
         ]);
 
         return res.json({ 
-            message: 'Tasks retrieved successfully',
             data: tasks,
             total,
             page,
@@ -65,33 +70,13 @@ tasksRouter.get('/',
     })
 );
 
-// Get single task by ID
-tasksRouter.get('/:taskId',
-    validate('taskId'),
-    asyncHandler(async (req, res) => {
-        const task = await Task.findOne({ 
-            _id: req.params.taskId,
-            userId: req.userId 
-        });
-
-        if (!task) {
-            throw new PlatformError('RESOURCE_NOT_FOUND');
-        }
-
-        return res.json({
-            message: 'Task retrieved successfully',
-            data: task
-        });
-    })
-);
-
-// Update task
-tasksRouter.patch('/:taskId',
+// Update task (support both PUT and PATCH for compatibility)
+tasksRouter.put('/:id',
     validate('taskId'),
     validate('updateTask'),
     asyncHandler(async (req, res) => {
         const task = await Task.findOneAndUpdate(
-            { _id: req.params.taskId, userId: req.userId },
+            { _id: req.params.id, userId: req.userId },
             { $set: req.body },
             { new: true, runValidators: true }
         );
@@ -100,19 +85,34 @@ tasksRouter.patch('/:taskId',
             throw new PlatformError('RESOURCE_NOT_FOUND');
         }
 
-        return res.json({
-            message: 'Task updated successfully',
-            data: task
-        });
+        return res.json(task);
+    })
+);
+
+tasksRouter.patch('/:id',
+    validate('taskId'),
+    validate('updateTask'),
+    asyncHandler(async (req, res) => {
+        const task = await Task.findOneAndUpdate(
+            { _id: req.params.id, userId: req.userId },
+            { $set: req.body },
+            { new: true, runValidators: true }
+        );
+
+        if (!task) {
+            throw new PlatformError('RESOURCE_NOT_FOUND');
+        }
+
+        return res.json(task);
     })
 );
 
 // Delete task
-tasksRouter.delete('/:taskId',
+tasksRouter.delete('/:id',
     validate('taskId'),
     asyncHandler(async (req, res) => {
         const task = await Task.findOneAndDelete({
-            _id: req.params.taskId,
+            _id: req.params.id,
             userId: req.userId
         });
 
@@ -120,21 +120,9 @@ tasksRouter.delete('/:taskId',
             throw new PlatformError('RESOURCE_NOT_FOUND');
         }
 
-        return res.json({
-            message: 'Task deleted successfully',
-            data: task
-        });
+        return res.json({ ok: true });
     })
 );
-
-const querySchema = z.object({
-    q: z.string().optional(),
-    status: z.string().optional(),
-    page: z.coerce.number().int().min(1).optional(),
-    limit: z.coerce.number().int().min(1).max(100).optional(),
-    sort: z.enum(['createdAt','title','status']).optional(),
-    order: z.enum(['asc','desc']).optional(),
-});
 
 
 
