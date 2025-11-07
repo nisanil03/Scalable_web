@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { requireAuth } from '../middleware/auth.js';
 import { Task } from '../models/Task.js';
 import { validate } from '../middleware/validate.js';
@@ -33,16 +34,32 @@ tasksRouter.post('/',
     })
 );
 
-// Get all tasks for authenticated user
-tasksRouter.get('/',
+// Get all tasks for authenticated user with filtering, pagination and sorting
+tasksRouter.get('/', 
     asyncHandler(async (req, res) => {
-        const tasks = await Task.find({ userId: req.userId })
-            .sort({ createdAt: -1 })
-            .limit(100);
+        const { q, status, page = 1, limit = 10, sort = 'createdAt', order = 'desc' } = await querySchema.parseAsync(req.query);
+        
+        const filter = { userId: req.userId };
+        if (status) filter.status = status;
+        if (q) filter.title = { $regex: q, $options: 'i' };
+        
+        const sortObj = { [sort]: order === 'asc' ? 1 : -1 };
+        const skip = (page - 1) * limit;
+        
+        const [total, tasks] = await Promise.all([
+            Task.countDocuments(filter),
+            Task.find(filter)
+                .sort(sortObj)
+                .skip(skip)
+                .limit(limit)
+        ]);
 
-        return res.json({
+        return res.json({ 
             message: 'Tasks retrieved successfully',
-            data: tasks
+            data: tasks,
+            total,
+            page,
+            limit
         });
     })
 );
@@ -118,39 +135,5 @@ const querySchema = z.object({
     order: z.enum(['asc','desc']).optional(),
 });
 
-tasksRouter.get('/', async (req, res) => {
-    const { q, status, page = 1, limit = 10, sort = 'createdAt', order = 'desc' } = querySchema.parse(req.query);
-    const filter = { userId: req.userId };
-    if (status) filter.status = status;
-    if (q) filter.title = { $regex: q, $options: 'i' };
-    const sortObj = { [sort]: order === 'asc' ? 1 : -1 };
-    const total = await Task.countDocuments(filter);
-    const tasks = await Task.find(filter)
-        .sort(sortObj)
-        .skip((page - 1) * limit)
-        .limit(limit);
-    return res.json({ data: tasks, total, page, limit });
-});
 
-const idParamSchema = z.object({ id: z.string().length(24) });
-const updateSchema = z.object({
-	title: z.string().min(1).optional(),
-	description: z.string().optional(),
-	status: z.enum(['todo', 'in_progress', 'done']).optional(),
-});
-
-tasksRouter.put('/:id', async (req, res) => {
-	const { id } = idParamSchema.parse(req.params);
-	const updates = updateSchema.parse(req.body);
-	const task = await Task.findOneAndUpdate({ _id: id, userId: req.userId }, updates, { new: true });
-	if (!task) return res.status(404).json({ error: 'Task not found' });
-	return res.json(task);
-});
-
-tasksRouter.delete('/:id', async (req, res) => {
-	const { id } = idParamSchema.parse(req.params);
-	const task = await Task.findOneAndDelete({ _id: id, userId: req.userId });
-	if (!task) return res.status(404).json({ error: 'Task not found' });
-	return res.json({ ok: true });
-});
 

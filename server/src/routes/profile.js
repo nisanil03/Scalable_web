@@ -9,21 +9,40 @@ export const profileRouter = Router();
 
 profileRouter.use(requireAuth);
 
-profileRouter.get('/', async (req, res) => {
-    // Return basic profile information. avatarUrl is intentionally omitted because
-    // profile picture support has been removed.
+profileRouter.get('/', asyncHandler(async (req, res) => {
     const user = await User.findById(req.userId).select('_id email name createdAt updatedAt');
-    return res.json(user);
+    if (!user) {
+        throw new PlatformError('RESOURCE_NOT_FOUND');
+    }
+    return res.json({
+        message: 'Profile retrieved successfully',
+        data: user
+    });
+}));
+
+const updateSchema = z.object({ 
+    name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+    email: z.string().email('Invalid email format').optional()
 });
 
-const updateSchema = z.object({ name: z.string().min(2).optional() });
+profileRouter.put('/', 
+    validate('updateProfile'),
+    asyncHandler(async (req, res) => {
+        const user = await User.findByIdAndUpdate(
+            req.userId,
+            { $set: req.body },
+            { new: true, runValidators: true }
+        ).select('_id email name createdAt updatedAt');
 
-profileRouter.put('/', async (req, res) => {
-    const parse = updateSchema.safeParse(req.body);
-    if (!parse.success) return res.status(400).json({ error: parse.error.format() });
-    const updates = parse.data;
-    const user = await User.findByIdAndUpdate(req.userId, updates, { new: true }).select('_id email name createdAt updatedAt');
-    return res.json(user);
-});
+        if (!user) {
+            throw new PlatformError('RESOURCE_NOT_FOUND');
+        }
+
+        return res.json({
+            message: 'Profile updated successfully',
+            data: user
+        });
+    })
+);
 // Avatar upload functionality has been removed and avatarUrl is no longer returned.
 

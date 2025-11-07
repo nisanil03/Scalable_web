@@ -14,6 +14,16 @@ const schemas = {
         password: z.string().min(6, 'Password must be at least 6 characters')
     }),
 
+    // Query parameter schemas
+    queryParams: z.object({
+        q: z.string().optional(),
+        status: z.enum(['todo', 'in_progress', 'done']).optional(),
+        page: z.coerce.number().int().min(1).optional(),
+        limit: z.coerce.number().int().min(1).max(100).optional(),
+        sort: z.enum(['createdAt', 'title', 'status']).optional(),
+        order: z.enum(['asc', 'desc']).optional()
+    }),
+
     // Task validation schemas
     createTask: z.object({
         title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
