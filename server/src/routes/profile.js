@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { User } from '../models/User.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { PlatformError } from '../middleware/platformErrors.js';
+import { validate } from '../middleware/validate.js';
 
 export const profileRouter = Router();
 

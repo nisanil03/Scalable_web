@@ -1,4 +1,4 @@
-const { isPlatformError, PLATFORM_ERRORS } = require('./platformErrors');
+import { isPlatformError, PLATFORM_ERRORS } from './platformErrors.js';
 
 export function errorHandler(err, req, res, _next) {
     // Log error for debugging (but avoid logging sensitive data)
