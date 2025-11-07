@@ -21,7 +21,10 @@ tasksRouter.post('/',
                 userId: req.userId 
             });
             
-            return res.status(201).json(task);
+            return res.status(201).json({
+                message: 'Task created successfully',
+                data: task
+            });
         } catch (err) {
             if (err.code === 11000) { // MongoDB duplicate key error
                 throw new PlatformError('INTERNAL_FUNCTION_INVOCATION_FAILED');
@@ -30,15 +33,6 @@ tasksRouter.post('/',
         }
     })
 );
-
-const querySchema = z.object({
-    q: z.string().optional(),
-    status: z.string().optional(),
-    page: z.coerce.number().int().min(1).optional(),
-    limit: z.coerce.number().int().min(1).max(100).optional(),
-    sort: z.enum(['createdAt','title','status']).optional(),
-    order: z.enum(['asc','desc']).optional(),
-});
 
 // Get all tasks for authenticated user with filtering, pagination and sorting
 tasksRouter.get('/', 
@@ -62,6 +56,7 @@ tasksRouter.get('/',
         ]);
 
         return res.json({ 
+            message: 'Tasks retrieved successfully',
             data: tasks,
             total,
             page,
@@ -70,31 +65,33 @@ tasksRouter.get('/',
     })
 );
 
-// Update task (support both PUT and PATCH for compatibility)
-tasksRouter.put('/:id',
+// Get single task by ID
+tasksRouter.get('/:taskId',
     validate('taskId'),
-    validate('updateTask'),
     asyncHandler(async (req, res) => {
-        const task = await Task.findOneAndUpdate(
-            { _id: req.params.id, userId: req.userId },
-            { $set: req.body },
-            { new: true, runValidators: true }
-        );
+        const task = await Task.findOne({ 
+            _id: req.params.taskId,
+            userId: req.userId 
+        });
 
         if (!task) {
             throw new PlatformError('RESOURCE_NOT_FOUND');
         }
 
-        return res.json(task);
+        return res.json({
+            message: 'Task retrieved successfully',
+            data: task
+        });
     })
 );
 
-tasksRouter.patch('/:id',
+// Update task
+tasksRouter.patch('/:taskId',
     validate('taskId'),
     validate('updateTask'),
     asyncHandler(async (req, res) => {
         const task = await Task.findOneAndUpdate(
-            { _id: req.params.id, userId: req.userId },
+            { _id: req.params.taskId, userId: req.userId },
             { $set: req.body },
             { new: true, runValidators: true }
         );
@@ -103,16 +100,19 @@ tasksRouter.patch('/:id',
             throw new PlatformError('RESOURCE_NOT_FOUND');
         }
 
-        return res.json(task);
+        return res.json({
+            message: 'Task updated successfully',
+            data: task
+        });
     })
 );
 
 // Delete task
-tasksRouter.delete('/:id',
+tasksRouter.delete('/:taskId',
     validate('taskId'),
     asyncHandler(async (req, res) => {
         const task = await Task.findOneAndDelete({
-            _id: req.params.id,
+            _id: req.params.taskId,
             userId: req.userId
         });
 
@@ -120,9 +120,21 @@ tasksRouter.delete('/:id',
             throw new PlatformError('RESOURCE_NOT_FOUND');
         }
 
-        return res.json({ ok: true });
+        return res.json({
+            message: 'Task deleted successfully',
+            data: task
+        });
     })
 );
+
+const querySchema = z.object({
+    q: z.string().optional(),
+    status: z.string().optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+    sort: z.enum(['createdAt','title','status']).optional(),
+    order: z.enum(['asc','desc']).optional(),
+});
 
 
 
