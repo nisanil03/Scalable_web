@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import apiClient from '../api';
 import { useAuth } from '../state/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -11,56 +11,94 @@ export function DashboardPage() {
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [total, setTotal] = useState(0);
 	const [q, setQ] = useState('');
+	const [debouncedQ, setDebouncedQ] = useState(q);
 	const [status, setStatus] = useState('');
 	const [sort, setSort] = useState<'createdAt'|'title'|'status'>('createdAt');
 	const [order, setOrder] = useState<'asc'|'desc'>('desc');
 	const [page, setPage] = useState(1);
 	const [limit, setLimit] = useState(5);
-	const [creating, setCreating] = useState({ title: '', description: '' });
+	const [creating, setCreating] = useState({ title: '', description: '', status: 'todo' });
 
-	const authHeaders = useMemo(() => ({ Authorization: token ? `Bearer ${token}` : '' }), [token]);
+	const load = useCallback(async () => {
+		if (!token) return;
+		const params: any = { page, limit, sort, order };
+		if (debouncedQ) params.q = debouncedQ;
+		if (status) params.status = status;
+		try {
+			const r = await apiClient.get('/api/tasks', { params });
+			setTasks(r.data.data);
+			setTotal(r.data.total || 0);
+		} catch (err) {
+			console.error('Failed to load tasks:', err);
+		}
+	}, [token, page, limit, sort, order, debouncedQ, status]);
 
 	useEffect(() => {
 		if (!token) return;
-		apiClient.get('/api/profile', { headers: authHeaders })
+		apiClient.get('/api/profile')
 			.then(r => setProfile(r.data))
 			.catch(err => console.error('Failed to load profile:', err?.response?.data?.error || err.message));
-		load();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [token]);
 
-	// Reload when pagination/sort settings change
 	useEffect(() => {
-		if (!token) return;
-		load();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [page, limit, sort, order]);
+		const handler = setTimeout(() => setDebouncedQ(q), 500);
+		return () => clearTimeout(handler);
+	}, [q]);
 
-	async function load() {
-		const params: any = { page, limit, sort, order };
-		if (q) params.q = q;
-		if (status) params.status = status;
-		const r = await apiClient.get('/api/tasks', { headers: authHeaders, params });
-		setTasks(r.data.data);
-		setTotal(r.data.total || 0);
-	}
+	useEffect(() => {
+		load();
+	}, [load]);
 
 	async function addTask(e: React.FormEvent) {
 		e.preventDefault();
 		if (!creating.title) return;
-		await apiClient.post('/api/tasks', creating, { headers: authHeaders });
-		setCreating({ title: '', description: '' });
-		await load();
+		
+		// Assume the API returns the newly created task object
+		try {
+			const { data: newTask } = await apiClient.post('/api/tasks', creating);
+			// Add the new task to the top of the list and update total
+			setTasks(currentTasks => [newTask, ...currentTasks]);
+			setTotal(currentTotal => currentTotal + 1);
+			setCreating({ title: '', description: '', status: 'todo' });
+		} catch (error) {
+			console.error("Failed to add task", error);
+			// Optionally show an error to the user
+		}
 	}
 
 	async function updateTask(id: string, updates: Partial<Task>) {
-		await apiClient.put(`/api/tasks/${id}`, updates, { headers: authHeaders });
-		await load();
+		const originalTasks = [...tasks];
+		// Optimistically update the local state
+		setTasks(currentTasks => currentTasks.map(t => (t._id === id ? { ...t, ...updates } : t)));
+
+		try {
+			await apiClient.put(`/api/tasks/${id}`, updates);
+		} catch (error) {
+			console.error("Failed to update task", error);
+			// If the API call fails, revert to the original state
+			setTasks(originalTasks);
+		}
 	}
 
 	async function deleteTask(id: string) {
-		await apiClient.delete(`/api/tasks/${id}`, { headers: authHeaders });
-		await load();
+		// Ask for confirmation before deleting
+		if (!window.confirm('Are you sure you want to delete this task?')) {
+			return;
+		}
+
+		const originalTasks = [...tasks];
+		// Optimistically remove the task from the local state
+		setTasks(currentTasks => currentTasks.filter(t => t._id !== id));
+		setTotal(currentTotal => currentTotal - 1);
+
+		try {
+			await apiClient.delete(`/api/tasks/${id}`);
+		} catch (error) {
+			console.error("Failed to delete task", error);
+			// If the API call fails, revert to the original state
+			setTasks(originalTasks);
+			setTotal(currentTotal => currentTotal + 1);
+		}
 	}
 
 	if (!user || !token) return <Navigate to="/login" replace />;
@@ -81,27 +119,38 @@ export function DashboardPage() {
 			<div className="grid grid-cols-1 gap-4">
 				<form onSubmit={addTask} className="rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 p-5 shadow-sm space-y-3">
 					<h2 className="font-semibold text-black dark:text-gray-100">Quick add task</h2>
-					<input
-						className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 dark:bg-gray-700 dark:border-gray-600"
-						placeholder="New task title"
-						value={creating.title}
-						onChange={e => setCreating(s => ({ ...s, title: e.target.value }))}
-					/>
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						<input
+							className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 dark:bg-gray-700 dark:border-gray-600"
+							placeholder="New task title"
+							value={creating.title}
+							onChange={e => setCreating(s => ({ ...s, title: e.target.value }))}
+						/>
+						<select
+							className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 dark:bg-gray-700 dark:border-gray-600"
+							value={creating.status}
+							onChange={e => setCreating(s => ({ ...s, status: e.target.value }))}
+						>
+							<option value="todo">Todo</option>
+							<option value="in_progress">In Progress</option>
+							<option value="done">Done</option>
+						</select>
+					</div>
 					<input
 						className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 dark:bg-gray-700 dark:border-gray-600"
 						placeholder="Description (optional)"
 						value={creating.description}
 						onChange={e => setCreating(s => ({ ...s, description: e.target.value }))}
 					/>
-					<button className="w-full sm:w-auto px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition">
+					<button type="submit" className="w-full sm:w-auto px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition">
 						Add Task
 					</button>
 				</form>
 			</div>
 
 			{/* Filter + Sort + Pagination */}
-			<div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center">
-				<input className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 dark:bg-gray-700 dark:border-gray-600" placeholder="Search" value={q} onChange={e => setQ(e.target.value)} />
+			<div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center" onChange={() => setPage(1)}>
+				<input className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 dark:bg-gray-700 dark:border-gray-600" placeholder="Search..." value={q} onChange={e => setQ(e.target.value)} />
 				<select className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 dark:bg-gray-700 dark:border-gray-600" value={status} onChange={e => setStatus(e.target.value)}>
 					<option value="">All</option>
 					<option value="todo">Todo</option>
@@ -122,7 +171,6 @@ export function DashboardPage() {
 					<option value={10}>10</option>
 					<option value={20}>20</option>
 				</select>
-				<button className="px-3 py-2 rounded-md bg-gray-900 dark:bg-gray-700 text-white hover:bg-black dark:hover:bg-gray-600 active:scale-95 transition" onClick={() => { setPage(1); load(); }}>Apply</button>
 			</div>
 
 			<div className="flex items-center gap-2">
@@ -134,8 +182,6 @@ export function DashboardPage() {
 					</>
 				); })()}
 			</div>
-
-			{/* Auto-load on page/limit/sort/order changes */}
 
 			{/* Tasks List */}
 			<ul className="divide-y rounded-xl border bg-white dark:bg-gray-800 dark:border-gray-700 overflow-hidden shadow-sm">
@@ -161,4 +207,3 @@ export function DashboardPage() {
 		</div>
 	);
 }
-

@@ -15,6 +15,7 @@ export function errorHandler(err, req, res, _next) {
     if (err.name === 'MongoError' || err.name === 'MongooseError') {
         return res.status(503).json({
             error: 'Database service temporarily unavailable',
+            
             code: 'DATABASE_ERROR',
             details: process.env.NODE_ENV === 'development' ? err.message : undefined
         });

@@ -11,7 +11,7 @@ const schema = z.object({
 });
 
 export function RegisterPage() {
-	const { token } = useAuth();
+	const { token, login } = useAuth();
 	const [form, setForm] = useState({ name: '', email: '', password: '' });
 	const [error, setError] = useState<string | null>(null);
 	const [ok, setOk] = useState<string | null>(null);
@@ -26,9 +26,9 @@ export function RegisterPage() {
 		if (!parse.success) return setError('Please fill all fields correctly.');
 		setLoading(true); setError(null); setOk(null);
 		try {
-			await apiClient.post('/api/auth/register', parse.data);
-			setOk('Account created. You can now log in.');
-			setTimeout(() => navigate('/login'), 800);
+			const res = await apiClient.post('/api/auth/register', parse.data);
+			login(res.data.token, res.data.user);
+			navigate('/');
 		} catch (err: any) {
 			setError(err?.response?.data?.error || 'Registration failed');
 		} finally { setLoading(false); }
@@ -200,4 +200,3 @@ export function RegisterPage() {
 		</div>
 	);
 }
-
